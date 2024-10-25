@@ -58,7 +58,7 @@ if dataframes:
 
     # Filter data for the last 120 days
     current_time_utc = pd.Timestamp.now(tz='UTC')
-    last_120_days = final_df[final_df['BillingPeriodStart'] >= current_time_utc - pd.Timedelta(days=120)]
+    last_120_days = final_df.loc[final_df['BillingPeriodStart'] >= current_time_utc - pd.Timedelta(days=180)]
 
     # Group by service and region, and sum 'EffectiveCost'
     grouped_data = last_120_days.groupby(['ServiceName', 'Region'])['EffectiveCost'].sum().reset_index()
@@ -78,10 +78,12 @@ if dataframes:
         region = row['Region']
         
         # Filter historical data for the outlier service-region combination
-        historical_data = final_df[(final_df['ServiceName'] == service) & (final_df['Region'] == region)]
+        historical_data = final_df.loc[(final_df['ServiceName'] == service) & (final_df['Region'] == region)]
         
         # Group by month and calculate the total cost for each month
-        historical_data['month'] = historical_data['BillingPeriodStart'].dt.to_period('M')
+        historical_data = historical_data.copy()  # Avoid SettingWithCopyWarning
+        historical_data['month'] = historical_data['BillingPeriodStart'].dt.to_period('M')  # Timezone will be dropped
+        
         monthly_cost = historical_data.groupby('month')['EffectiveCost'].sum().reset_index()
         
         # Create a summary string of the monthly cost, e.g., "Apr: $90, May: $100, Jun: $300"
@@ -91,6 +93,7 @@ if dataframes:
         historical_summaries.append(monthly_summary)
     
     # Add the historical summary as a new column to the anomalies DataFrame
+    anomalies = anomalies.copy()  # Avoid SettingWithCopyWarning
     anomalies['Historical Monthly Cost'] = historical_summaries
 
     # Save anomalies to a CSV file with the historical cost included
