@@ -1,5 +1,5 @@
 import oci
-import os
+import os,sys
 
 # Set your namespace and bucket details
 reporting_namespace = 'bling'
@@ -18,13 +18,14 @@ if not os.path.exists(destination_path):
 config = oci.config.from_file(oci.config.DEFAULT_LOCATION, oci.config.DEFAULT_PROFILE)
 object_storage = oci.object_storage.ObjectStorageClient(config)
 reporting_bucket = config['tenancy']
-
 # Get the list of reports
 report_bucket_objects = oci.pagination.list_call_get_all_results(object_storage.list_objects, reporting_namespace, reporting_bucket, prefix=prefix_file)
 
 # Loop through each file in the bucket, download it, upload it to another bucket, and delete locally
 for o in report_bucket_objects.data.objects:
     print(f'Found file {o.name}')
+    print(o.name.rsplit('/', 1)[-1])
+    sys.exit()
     
     # Download the file
     object_details = object_storage.get_object(reporting_namespace, reporting_bucket, o.name)
